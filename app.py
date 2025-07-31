@@ -6,9 +6,9 @@ from datetime import datetime
 def procesar_facturas_xml(directorio_xml, archivo_excel_salida):
     datos_facturas = []
     
-    # Definir namespaces para CFDI 3.3 (cambiar a cfd/4 para CFDI 4.0)
+    # Definir namespaces para CFDI 4 (cambiar a cfd/3 para CFDI 3.3)
     namespaces = {
-        'cfdi': 'http://www.sat.gob.mx/cfd/3',
+        'cfdi': 'http://www.sat.gob.mx/cfd/4',
         'tfd': 'http://www.sat.gob.mx/TimbreFiscalDigital'
     }
     
@@ -30,6 +30,11 @@ def procesar_facturas_xml(directorio_xml, archivo_excel_salida):
                     subtotal = float(root.get('SubTotal', 0))
                     moneda = root.get('Moneda', 'MXN')
                     tipo_comprobante = root.get('TipoDeComprobante')
+
+                    # Datos de lo comprado
+                    descripcion = root.find('cfdi:Conceptos/cfdi:Concepto', namespaces)
+                    descripcion_concepto = descripcion.get('Descripcion') if descripcion is not None else ''
+
                                         
                     # Datos del emisor
                     emisor = root.find('cfdi:Emisor', namespaces)
@@ -40,6 +45,7 @@ def procesar_facturas_xml(directorio_xml, archivo_excel_salida):
                     receptor = root.find('cfdi:Receptor', namespaces)
                     receptor_rfc = receptor.get('Rfc') if receptor is not None else ''
                     receptor_nombre = receptor.get('Nombre') if receptor is not None else ''
+                    receptor_regFiscal = receptor.get('RegimenFiscalReceptor') if receptor is not None else ''  
                     
                     # UUID del timbre fiscal
                     timbre = root.find('.//tfd:TimbreFiscalDigital', namespaces)
@@ -68,11 +74,13 @@ def procesar_facturas_xml(directorio_xml, archivo_excel_salida):
                         "EmisorNombre": emisor_nombre,
                         "ReceptorRFC": receptor_rfc,
                         "ReceptorNombre": receptor_nombre,
+                        "ReceptorRegimenFiscal": receptor_regFiscal,
                         "UUID": uuid,
                         "TotalImpuestos": total_impuestos,
                         "UsoCFDI": uso_cfdi,
                         "MetodoPago": metodo_pago,
-                        "FormaPago": forma_pago
+                        "FormaPago": forma_pago,
+                        "DescripcionConcepto": descripcion_concepto
                     }
                     
                     datos_facturas.append(factura_data)
@@ -95,11 +103,11 @@ def procesar_facturas_xml(directorio_xml, archivo_excel_salida):
         # Convertir fecha a datetime
         df_facturas['Fecha'] = pd.to_datetime(df_facturas['Fecha'])
         
-        # Filtrar facturas con un total mayor a 1000
+        # Filtrar facturas con un total mayor a $1
         df_filtrado = df_facturas[df_facturas['Total'] > 1]
         
         # Seleccionar columnas para el reporte final
-        df_final = df_filtrado[[ 'Fecha', 'EmisorNombre', 'Total', 'UUID','NumeroFactura', 'UsoCFDI', 'MetodoPago', 'FormaPago']]
+        df_final = df_filtrado[[ 'Fecha', 'EmisorNombre', 'EmisorRFC', 'Total', 'UUID','NumeroFactura', 'DescripcionConcepto', 'UsoCFDI', 'MetodoPago', 'FormaPago','ReceptorNombre', 'ReceptorRFC', 'ReceptorRegimenFiscal']]
         
         # Ordenar por fecha
         df_final = df_final.sort_values('Fecha')
