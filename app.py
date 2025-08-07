@@ -107,7 +107,7 @@ def procesar_facturas_xml(directorio_xml, archivo_excel_salida):
         df_filtrado = df_facturas[df_facturas['Total'] > 1]
         
         # Seleccionar columnas para el reporte final
-        df_final = df_filtrado[[ 'Fecha', 'EmisorNombre', 'EmisorRFC', 'Total', 'UUID','NumeroFactura', 'DescripcionConcepto', 'UsoCFDI', 'MetodoPago', 'FormaPago','ReceptorNombre', 'ReceptorRFC', 'ReceptorRegimenFiscal']]
+        df_final = df_filtrado[[ 'Fecha', 'EmisorNombre', 'EmisorRFC', 'Total', 'Moneda', 'UUID','NumeroFactura', 'DescripcionConcepto', 'UsoCFDI', 'MetodoPago', 'FormaPago','ReceptorNombre', 'ReceptorRFC', 'ReceptorRegimenFiscal']]
         
         # Ordenar por fecha
         df_final = df_final.sort_values('Fecha')
