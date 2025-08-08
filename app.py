@@ -1,11 +1,18 @@
+"""Se realizan las siguientes importaciones necesarias"""
 import os
 import xml.etree.ElementTree as ET
+import shutil
 import pandas as pd
-from datetime import datetime
 
 def procesar_facturas_xml(directorio_xml, archivo_excel_salida):
     datos_facturas = []
+    xmlaprocesar = len(os.listdir(directorio_xml))
     
+    # Directorio para los archivos procesados
+    directorio_procesados = os.path.join(directorio_xml, 'procesados_xml')
+    if not os.path.exists(directorio_procesados):
+        os.makedirs(directorio_procesados)
+
     # Definir namespaces para CFDI 4 (cambiar a cfd/3 para CFDI 3.3)
     namespaces = {
         'cfdi': 'http://www.sat.gob.mx/cfd/4',
@@ -35,7 +42,6 @@ def procesar_facturas_xml(directorio_xml, archivo_excel_salida):
                     descripcion = root.find('cfdi:Conceptos/cfdi:Concepto', namespaces)
                     descripcion_concepto = descripcion.get('Descripcion') if descripcion is not None else ''
 
-                                        
                     # Datos del emisor
                     emisor = root.find('cfdi:Emisor', namespaces)
                     emisor_rfc = emisor.get('Rfc') if emisor is not None else ''
@@ -45,7 +51,7 @@ def procesar_facturas_xml(directorio_xml, archivo_excel_salida):
                     receptor = root.find('cfdi:Receptor', namespaces)
                     receptor_rfc = receptor.get('Rfc') if receptor is not None else ''
                     receptor_nombre = receptor.get('Nombre') if receptor is not None else ''
-                    receptor_regFiscal = receptor.get('RegimenFiscalReceptor') if receptor is not None else ''  
+                    receptor_regfiscal = receptor.get('RegimenFiscalReceptor') if receptor is not None else ''  
                     
                     # UUID del timbre fiscal
                     timbre = root.find('.//tfd:TimbreFiscalDigital', namespaces)
@@ -60,8 +66,6 @@ def procesar_facturas_xml(directorio_xml, archivo_excel_salida):
                     metodo_pago = root.get('MetodoPago')
                     forma_pago = root.get('FormaPago')
 
-
-                    
                     factura_data = {
                         "ArchivoXML": nombre_archivo,
                         "NumeroFactura": numero_factura,
@@ -74,7 +78,7 @@ def procesar_facturas_xml(directorio_xml, archivo_excel_salida):
                         "EmisorNombre": emisor_nombre,
                         "ReceptorRFC": receptor_rfc,
                         "ReceptorNombre": receptor_nombre,
-                        "ReceptorRegimenFiscal": receptor_regFiscal,
+                        "ReceptorRegimenFiscal": receptor_regfiscal,
                         "UUID": uuid,
                         "TotalImpuestos": total_impuestos,
                         "UsoCFDI": uso_cfdi,
@@ -85,6 +89,10 @@ def procesar_facturas_xml(directorio_xml, archivo_excel_salida):
                     
                     datos_facturas.append(factura_data)
                     print(f"Procesado: {nombre_archivo}")
+                    
+                    # --- Mover el archivo a la carpeta de procesados ---
+                    shutil.move(ruta_completa_archivo, os.path.join(directorio_procesados, nombre_archivo))
+                    # ---------------------------------------------------
                     
                 except (AttributeError, ValueError, TypeError) as e:
                     print(f"Error extrayendo datos de {nombre_archivo}: {e}")
@@ -112,7 +120,7 @@ def procesar_facturas_xml(directorio_xml, archivo_excel_salida):
         # Ordenar por fecha
         df_final = df_final.sort_values('Fecha')
         
-        print(f"Se procesaron {len(df_facturas)} facturas")
+        print(f"Se procesaron {len(df_facturas)} facturas de un total de {xmlaprocesar} archivos XML")
         print(f"Se filtraron {len(df_final)} facturas con total > 1")
         
     else:
@@ -131,14 +139,16 @@ def procesar_facturas_xml(directorio_xml, archivo_excel_salida):
 
 # --- Uso de la función ---
 # Directorio donde se encuentran tus archivos XML de facturas
-directorio_facturas = 'facturas_xml'
+DIR_FACTURAS = 'facturas_xml'
 
 # Nombre del archivo Excel de salida
-excel_salida = 'reporte_facturas.xlsx'
+EXCEL_SALIDA = 'reporte_facturas.xlsx'
 
 # Asegúrate de que el directorio exista
-if not os.path.exists(directorio_facturas):
-    os.makedirs(directorio_facturas)
-    print(f"Directorio '{directorio_facturas}' creado. Por favor, coloca tus archivos XML aquí.")
+if not os.path.exists(DIR_FACTURAS):
+    os.makedirs(DIR_FACTURAS)
+    print(f"Directorio '{DIR_FACTURAS}' creado. Por favor, coloca tus archivos XML aquí.")
 else:
-    procesar_facturas_xml(directorio_facturas, excel_salida)
+    procesar_facturas_xml(DIR_FACTURAS, EXCEL_SALIDA)
+
+# --- Fin del uso de la función --- 
